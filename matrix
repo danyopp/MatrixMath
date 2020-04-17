@@ -1,0 +1,432 @@
+#!/bin/bash
+
+#####################################
+#Name: dims()
+#Description: Function to calculate the dimensions of a matrix
+#####################################
+dims()
+{
+  
+  datafilepath=datafile$$
+
+  #determine if there is no argument 
+  if [ $# -lt 1 ]
+	  #If no argument, wait to see if anything was piped in  
+     then timeout 1 cat > $datafilepath
+		#data piped in and saved in file
+	  if [[ -s $datafilepath ]]	
+		then touch $datafilepath
+		#Nothing piped in, Kill Script	
+	  else	     rm -f "datafile$$"
+		     echo "Error - dims - less that 1 arg" 1>&2
+	             exit 1
+	  fi
+  #if one argument is given, ensure valid file
+  elif [ "$#" = "1" ]
+     then if [ -f $1 ]
+	    then  datafilepath=$1
+	  #if not valid, kill script
+	  else  rm -f "datafile$$"
+		echo "Error - dims - file doesn't exist" 1>&2
+		exit 1
+	  fi
+  #if more than one argument is given, kill script 	  
+  elif [ $# -gt 1 ]
+     then echo "Error - dims - more than 1 arg" 1>&2
+	   exit 1
+  fi
+
+      
+  rowCount=0
+  colCount=0
+  
+  #calc number of rows
+  while read myLine
+   do
+     ((rowCount++))	
+   done<$datafilepath
+
+  #calc number of cols
+  read oneLine < $datafilepath 
+  for i in $oneLine
+   do
+     ((colCount++))
+   done	
+
+  #output data
+  echo "$rowCount $colCount" 
+
+  #cleanup
+  rm -f "datafile$$"
+  
+}
+
+
+
+
+#################################################
+# Name: transpose()
+# Description: Function to transpose MxN matrix to NxM
+#################################################
+transpose()
+{
+  #if too many args are given, throw error 
+  if [ $# -gt 1 ]
+     then      echo "Error - Transpose - wrong num of args" 1>&2
+	       exit 1
+  fi	  
+  #if one argument is given, ensure valid file
+  if [ -r $1 ]
+     then touch $1
+  else  echo "Error - Transpose - file not readable" 1>&2
+		exit 1
+  fi
+  
+  #count the number of columns to cut
+  colCount=0
+  read oneLine < $1
+  for i in $oneLine
+   do
+     ((colCount++))
+   done
+  ((colCount++))
+
+  #cut the columns out and make them rows
+  jcount=1 #offset from beginning
+  while test $jcount -ne $colCount
+   do  
+     	cuttest=$(cut -f $jcount $1)
+	
+ 	#determine number of elements that were cut out
+	rownum=0
+	for i in $cuttest
+	do
+	   ((rownum++))
+	done
+
+	#print elements to a file seperated by tabs->but last element gets a newline 
+	rowcounter=0
+	for i in $cuttest
+	do
+	   ((rowcounter++))
+	   printf "%d" $i >> tempfile$$
+	   if [[ $rownum == $rowcounter ]]
+	     then
+		printf "\n" >> tempfile$$
+	   else printf "\t" >> tempfile$$
+	   fi 	
+	done
+        ((jcount++))
+   done
+
+  #print result and delete file
+  cat tempfile$$  
+  rm -f tempfile$$
+   	
+}
+
+
+
+##############################################
+# Name: mean()
+# Description: Calculates mean of each column in matrix and outputs rounded results
+##############################################
+mean()
+{
+
+  #if too many args are given, throw error 
+  if [ $# -gt 1 ]
+     then      echo "Error - Mean - wrong num of args" 1>&2
+	       exit 1
+  fi	  
+  #if one argument is given, ensure valid file
+  if [ -r $1 ]
+     then touch $1
+  else  echo "Error - Mean - file not readable" 1>&2
+		exit 1
+  fi
+
+  #count the number of columns to cut
+  colCount=0
+  read oneLine < $1
+  for i in $oneLine
+   do
+     ((colCount++))
+   done
+  ((colCount++)) #variable used to store number of columns in matrix
+
+
+  #cut the columns out and make them rows
+  jcount=1 #variable to hold the current offset from beginning
+  while test $jcount -ne $colCount
+   do  
+	#cut a column from matrix
+     	cuttest=$(cut -f $jcount $1)
+	
+ 	#determine number of elements that were cut out
+	elementnumber=0
+	for i in $cuttest
+	do
+	   ((elementnumber++))
+	done
+
+	#sum all the elements in the column
+        sumCol=0
+	for i in $cuttest
+	do
+	  sumCol=`expr $sumCol + $i`
+	done
+
+	#equations to determine mean and rounding 
+	quotientCol=`expr $sumCol \/ $elementnumber`
+	modulusCol=`expr $sumCol \% $elementnumber`
+	doubleMod=`expr $modulusCol \* 2` 
+	negElemNum=`expr $elementnumber \* -1`
+
+	#Rounding logic - compare double modulus to divisor
+	if [[ $modulusCol -gt 0 ]]
+	 #Positive Quotient and modulus
+	 then 
+		if [[ $doubleMod -ge $elementnumber ]]
+			#round up
+		   then ((quotientCol++))	    
+		fi
+	elif [[ $modulusCol -lt 0 ]]
+	 #Negative Quotient and modulus
+	 then
+	   	if [[ $doubleMod -le $negElemNum ]]
+			#round down
+		   then ((quotientCol--))	
+		fi
+	#if mod equals zero then no rounding needed
+	fi
+
+	
+#	echo -e "finalRound: $quotientCol \n"
+
+
+	#print result with appropriate spacer
+	   ((jcount++))
+	   printf "%d" $quotientCol
+	   if [[ $jcount == $colCount ]]
+	     then
+		printf "\n" 
+	   else printf "\t" 
+	   fi 	
+   done
+}
+
+
+
+###########################################
+# Name: add()
+# Description: function to add two matricies
+###########################################
+add()
+{
+	
+  #if too many args are given, throw error 
+  if [ $# -ne 2 ]
+     then      echo "Error - add - wrong num of args" 1>&2
+	       exit 1
+  fi
+	  
+  #if two arguments are given, ensure valid files
+  if [ -r $1 ]
+     then touch $1
+  else  echo "Error - Add - file not readable" 1>&2
+		exit 1
+  fi
+
+  if [ -r $2 ]
+     then touch $2
+  else  echo "Error - Add - file not readable" 1>&2
+		exit 1
+  fi
+
+  #compare matrix sizes
+  M1R=""
+  M1C=""
+  M2R=""
+  M2C=""
+
+  #use dims function to get sizes of matrix
+  dims $1 > Matrix1$$
+  read M1R M1C  < Matrix1$$    
+  dims $2 > Matrix2$$
+  read M2R M2C   < Matrix2$$ 
+  rm -f Matrix?$$
+
+  #compare matrix rows and columns to ensure they match
+  if [[ $M1R -ne $M2R ]]
+     then echo "Error - Add - Matricies not the same size" 1>&2
+        exit 1
+  elif [[ $M1C -ne $M2C ]]
+     then echo "Error - Add - Matricies not the same size" 1>&2		
+   	exit 1
+  fi
+
+  #read matrix into two arrays
+  read -d '' -a m1Array < $1
+  read -d '' -a m2Array < $2
+
+  counter=0
+  numberOnRow=1
+  totalnums=`expr $M1R \* $M1C ` 
+
+  #while loop cycles through both arrays adding the sum and determining the whitespaace that will be placed after the sum is printed 
+  while [[ counter -lt totalnums ]]
+     do
+	#copy current index to variable
+       indexedM1=${m1Array[$counter]}  
+       indexedM2=${m2Array[$counter]}	
+	
+	#compute sum
+       output=`expr $indexedM1 \+ $indexedM2`	
+
+	#print sum
+       printf "%s" $output 		
+
+	#determine appropriate whitespace
+       if [[ $numberOnRow -lt $M1C ]]		 
+	  then 
+ 	#add a tab and increment row count
+           printf "\t"
+	   ((numberOnRow++))
+       else
+	#add a newline and reset row count	
+	   printf "\n"
+	   numberOnRow=1 	   
+       fi 
+
+	#increment index for array	
+       ((counter++))
+   done 
+
+}
+
+
+
+#############################################
+# Name: multiply()
+# Description: mulltiplies to matricies together
+#############################################
+multiply()
+{
+	
+  #if too many args are given, throw error 
+  if [ $# -ne 2 ]
+     then      echo "Error - multiply - wrong num of args" 1>&2
+	       exit 1
+  fi
+	  
+  #if two arguments are given, ensure valid files
+  if [ -r $1 ]
+     then touch $1
+  else  echo "Error - multiply - file not readable" 1>&2
+		exit 1
+  fi
+
+  if [ -r $2 ]
+     then touch $2
+  else  echo "Error - multiply - file not readable" 1>&2
+		exit 1
+  fi
+
+  #compare matrix sizes
+  M1R=""
+  M1C=""
+  M2R=""
+  M2C=""
+
+  #use dims function to get sizes of matrix
+  dims $1 > Matrix1$$
+  read M1R M1C  < Matrix1$$    
+  dims $2 > Matrix2$$
+  read M2R M2C   < Matrix2$$ 
+  rm -f Matrix?$$
+
+  #compare matrix rows and columns to ensure they match
+  if [[ $M1C -ne $M2R ]]
+     then echo "Error - Multiply - cols in matrix1 must equal rows in matrix2" 1>&2
+        exit 1
+  fi
+
+
+  #save all rows to indexies in array for matrix1
+  #note: one index in this array contains the entire row of numbers from M1 	
+  # [1 2 3]	array[0]="1 2 3"
+  # [4 5 6]	array[1]="4 5 6" 	
+  declare -a fullRowArray
+  count1=0
+   while read ripLine  
+      do
+	fullRowArray[$count1]=$ripLine
+	((count1++))
+
+     done < $1
+
+ rowCounter=0
+  #pull a row out of full row array, parse it, and multiply it by each column   
+  while [[ $rowCounter -lt $M1R ]]
+    do
+	#convert full row at one index to a new array each number in the current row at an individual index 
+	#fullRowArray[0]="1 2 3" ->  rowArray[0]=1 rowArray[1]=2 rowArray[2]=3
+	tempRowHolder=${fullRowArray[$rowCounter]}
+	read -d '' -a rowArray <<< $tempRowHolder
+
+	#while loop for cutting columns from M2 and multiplying by an array containing a parsed row from M1
+	#a row from M1 must be multiplied by each column in M2
+	columnCounter=1		#counter to keep track of which column is currently being multiplies
+        while [[ $columnCounter -le $M2C ]]
+          do
+		#cut column based on columnCounter varable and store in M2 col array
+		tempColHolder=$(cut -f $columnCounter $2)
+		read -d '' -a colArray <<< $tempColHolder 	
+
+
+		# dot product calc - 
+		# M1row= [a b c] M2col= [d e f]
+		# [a b c]*[d e f]= a*d + b*e + c*f
+		# the while loop multiplies corresponding elements and adds to running sum 
+		elemCntr=0
+		elemSum=0
+		while [[ $elemCntr -lt $M2R ]]
+		  do
+			#multiply elements
+			m1Var=${rowArray[$elemCntr]}
+			m2Var=${colArray[$elemCntr]}
+			tempholder=$(expr $m1Var \* $m2Var)	
+	
+			#calc sum of products
+			elemSum=$(expr $elemSum \+ $tempholder)
+			
+			#counter to keep track of where in the row program is
+			((elemCntr++))
+		  done
+		 
+		#print Sum of products
+		printf "%s" $elemSum
+
+		#counter to keep track of when to place neww line
+		((columnCounter++))				
+
+		#newline or tab logic tree 
+		if [[ $columnCounter -le $M2C ]]
+		   then 
+			printf "\t"
+		else
+			printf "\n"
+		fi	
+	
+		
+        done	#back to multiply same row by next column
+
+	#counter variable to move on to next row once current row has been multipied by all columns
+ 	((rowCounter++))	 
+   done	#back to get new row to mulitply by each Matrix2 col
+}
+
+trap "rm -f datafile$$ tempfile$$ Matrix?$$; echo 'Process Interupt'; exit 1" INT HUP TERM
+
+$1 "${@:2}"
