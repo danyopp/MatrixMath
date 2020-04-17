@@ -1,7 +1,7 @@
 This is a bash script for calculating basic matrix operations. 
 call the script using the following structure
 
-**matrix** *OPERATION* *ARGUMENT* *ARGUMENT2*
+./**matrix** *OPERATION* *ARGUMENT* *ARGUMENT2*
 
 **Operations:**
 *dims* - will provide the dimensions of the input matrix
