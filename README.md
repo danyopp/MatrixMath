@@ -15,7 +15,8 @@ call the script using the following structure
 
 *miltiply* - multiplies two matrices, requires two arguments. MxN * NxP = M*P
 
-**Arguments**
+**Arguments:**
+
 Data within rows of the matrix should be delimited by tabs
 
 Rows of the matrix should be delimited by a newline character
