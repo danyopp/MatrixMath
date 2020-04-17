@@ -19,7 +19,7 @@ The following matrix is in acceptable format:
     8   5   6
     3   2   2
 
-using ^I to repersent tab and $ to repersent newline the matrix would read
+using ^I to repersent tab and $ to represent newline the matrix would read
 
     8^I5^I6$
     3^I2^I2$
