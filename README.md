@@ -4,14 +4,20 @@ call the script using the following structure
 ./**matrix** *OPERATION* *ARGUMENT* *ARGUMENT2*
 
 **Operations:**
+
 *dims* - will provide the dimensions of the input matrix
+
 *transpose* - refects elements of matrix along main diagonal. MxN -> NxM
+
 *mean* - calculates the matrix mean of each column and returns a matix with result
+
 *add* - adds two matrices, requires two arguments with same dimensions.
+
 *miltiply* - multiplies two matrices, requires two arguments. MxN * NxP = M*P
 
 **Arguments**
 Data within rows of the matrix should be delimited by tabs
+
 Rows of the matrix should be delimited by a newline character
 
 The following matrix is in acceptable format:
